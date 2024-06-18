@@ -1,12 +1,13 @@
 main: com.aguaral.effect_wands.App
 name: effect_wands
 version: 0.1
+api-version: '1.20.6'
 
 commands:
-  effectwands:
-    description: Edit the player list of the held effect wand
-    usage: /effectwands <add/remove/clear> <playername>
-  createwands:
-    description: (Admin) Get the wands for this world 
+  createtomes:
+    description: (Admin) Get the tomes for this world 
     usage: /createwands
     permission: minecraft.command.ban
+  resettome:
+    description: Reset the writings in the held tome
+    usage: (While holding the tome) /resettome
