@@ -1,5 +1,5 @@
 # PotionNotes
-A Spigot plugin that creates unique tome items that add beacon-like potion effects to players listed under them.
+A Spigot plugin for Spigot API 1.20.6 that creates unique tome items that add beacon-like potion effects to players listed under them.
 # Usage
 Add this plugin, then type the command "/createtomes" (admin only) to receive your world-unique tomes.
 Write usernames in the tome for those players to receive the potion effects. Use a new line for each username.
