@@ -12,7 +12,7 @@ public class Wand {
     // the list of playernames this wand is applying to
     private final List<String> playerList;
     // duration of this wand's potion effect
-    private final int duration = 260;
+    private final int duration = 400;
     // name of the potion effect's name (see App.java's map)
     private final String potionEffectName;
     // level of the potion effect (configurable in wands.json)
@@ -46,9 +46,9 @@ public class Wand {
     {
         for(String name : playerList)
         {
-            if(Bukkit.getPlayer(name) == null) continue;
+            if(Bukkit.getPlayerExact(name) == null) continue;
             PotionEffect potionEffect = new PotionEffect(App.nameToEffect.get(potionEffectName), duration, amplifier);
-            Bukkit.getPlayer(name).addPotionEffect(potionEffect); 
+            Bukkit.getPlayerExact(name).addPotionEffect(potionEffect); 
         }
     }
 }

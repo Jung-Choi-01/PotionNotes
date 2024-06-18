@@ -82,6 +82,7 @@ public class App extends JavaPlugin implements Listener {
                 BookMeta bookMeta = (BookMeta) heldItemStack.getItemMeta();
                 bookMeta.setPages(new ArrayList<String>());
                 heldItemStack.setItemMeta(bookMeta);
+                this.onEvent(new PlayerEditBookEvent(player, playerInventory.getHeldItemSlot(), bookMeta, bookMeta, false));
             }
         }
         return true;
