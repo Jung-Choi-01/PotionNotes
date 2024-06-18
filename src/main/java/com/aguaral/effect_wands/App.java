@@ -9,24 +9,27 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
-import org.bukkit.Material;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.enchantments.Enchantment;
-import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitScheduler;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerEditBookEvent;
+import org.bukkit.inventory.meta.BookMeta;
+import org.bukkit.Material;
+import org.bukkit.command.Command;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.inventory.ItemStack;
 
 import com.google.gson.Gson;
 import com.google.gson.internal.LinkedTreeMap;
 
-public class App extends JavaPlugin implements CommandExecutor {
+public class App extends JavaPlugin implements Listener {
     private Gson gson;
+    // if you really want to optimize, you can try making this a hashmap, but i'm lazy
     private List<Wand> wandList;
     private final String dataPath = "plugins\\effect_wands\\wands.json";
 
@@ -53,12 +56,36 @@ public class App extends JavaPlugin implements CommandExecutor {
 
     @Override
     public void onEnable() {
-        this.getCommand("effectwands").setExecutor(this);
-        this.getCommand("createwands").setExecutor(new WandCreator());
+        this.getCommand("createtomes").setExecutor(new WandCreator());
+        this.getCommand("resettome").setExecutor(this);
+        getServer().getPluginManager().registerEvents(this, this);
         gson = new Gson();
         
         setupWandList();
         startScheduler();
+    }
+
+    // command "resettome" resets the writings in the held tome
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if(sender instanceof Player)
+        {
+            Player player = (Player) sender;
+            PlayerInventory playerInventory = player.getInventory();
+            ItemStack heldItemStack = playerInventory.getItem(playerInventory.getHeldItemSlot());
+            
+            // verify we are holding a tome
+            if(heldItemStack.getType() == Material.WRITABLE_BOOK &&
+                heldItemStack.containsEnchantment(Enchantment.ARROW_INFINITE))
+            {
+                // reset the pages
+                BookMeta bookMeta = (BookMeta) heldItemStack.getItemMeta();
+                bookMeta.setPages(new ArrayList<String>());
+                heldItemStack.setItemMeta(bookMeta);
+                this.onEvent(new PlayerEditBookEvent(player, playerInventory.getHeldItemSlot(), bookMeta, bookMeta, false));
+            }
+        }
+        return true;
     }
 
     // precondition: server startup
@@ -78,7 +105,7 @@ public class App extends JavaPlugin implements CommandExecutor {
         }
         else
         {
-            // every other startup -- deserialize the list
+            // every non-first startup -- deserialize the list
             try(FileReader reader = new FileReader(dataPath))
             {
                 List<LinkedTreeMap> rawRead = new ArrayList<LinkedTreeMap>();
@@ -86,11 +113,12 @@ public class App extends JavaPlugin implements CommandExecutor {
                 // getLogger().info("Deserialized: " + rawRead.toString());
                 // getLogger().info("Deserialized type: " + rawRead.getClass().getName());
                 // getLogger().info("Deserialized inner type: " + rawRead.get(0).getClass().getName());
-
+                
+                // convert the received json to the correct Wand type using an inner deserialize
                 wandList = new ArrayList<Wand>();
                 for(LinkedTreeMap linkedTreeMap : rawRead)
                 {
-                    getLogger().info(linkedTreeMap.toString());
+                    // getLogger().info(linkedTreeMap.toString());
                     wandList.add(gson.fromJson(linkedTreeMap.toString(), Wand.class));
                 }
                 // getLogger().info("wandList: " + wandList);
@@ -107,7 +135,7 @@ public class App extends JavaPlugin implements CommandExecutor {
     }
 
     // precondition: wandlist is set up
-    // postcondition: repeating effect applies to players
+    // postcondition: repeating effect every 10s applies to players
     private void startScheduler()
     {
         // begin scheduler for applying potion effects
@@ -142,76 +170,30 @@ public class App extends JavaPlugin implements CommandExecutor {
         for(Wand wand : wandList)
             wand.applyToPlayers();
     }
-    /**
-     * 
-     * COMMAND STUFF!!!
-     * 
-     */
-    @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args)
-    {
-        if(sender instanceof Player)
-        {
-            Player player = (Player) sender;
-            PlayerInventory inventory = player.getInventory();
-            int heldSlot = inventory.getHeldItemSlot();
-            ItemStack heldItemStack = inventory.getItem(heldSlot);
-            
-            // nether stars enchanted with infinity will be our basis for determining a "wand"
-            if( heldItemStack.getType() == Material.NETHER_STAR &&
-                heldItemStack.containsEnchantment(Enchantment.ARROW_INFINITE))
-            {
-                String effect = heldItemStack.getItemMeta().getLore().get(0).substring(WandCreator.loreText.length() - 2); // magic number ngl
-                return interpretArgs(args, effect, heldItemStack);
-            }
-        }
-        return false;
-    }
-
-    private boolean interpretArgs(String[] args, String effect, ItemStack heldItemStack)
-    {
-        if(args.length == 0) return false;
-        switch(args[0])
-        {
-            case("add"):
-                if(args.length == 1) return false;
-                getWandByEffect(effect).addPlayer(args[1]);
-                updateLore(effect, heldItemStack);
-                return true;
-            case("remove"):
-                if(args.length == 1) return false;
-                getWandByEffect(effect).removePlayer(args[1]);
-                updateLore(effect, heldItemStack);
-                return true;
-            case("clear"):
-                getWandByEffect(effect).clearPlayers();
-                updateLore(effect, heldItemStack);
-                return true;
-            default:
-                return false;
-        }
-    }
 
     private Wand getWandByEffect(String effect)
     {
-        getLogger().info("Searching for wand " + effect);
+        // getLogger().info("Searching for wand " + effect);
         for(Wand wand : wandList)
         {
-            getLogger().info("Found wand " + wand.getEffectName());
+            // getLogger().info("Found wand " + wand.getEffectName());
             if(wand.getEffectName().equals(effect)) return wand;
         }
             
         return null;
     }
-    
-    private void updateLore(String effect, ItemStack heldItemStack)
-    {
-        List<String> lore = new ArrayList<String>();
-        lore.add(heldItemStack.getItemMeta().getLore().get(0));
-        lore.addAll(getWandByEffect(effect).getPlayers());
 
-        ItemMeta heldItemMeta = heldItemStack.getItemMeta();
-        heldItemMeta.setLore(lore);
-        heldItemStack.setItemMeta(heldItemMeta);
+    @EventHandler
+    public void onEvent(PlayerEditBookEvent bookEvent)
+    {
+        BookMeta bookMeta = bookEvent.getNewBookMeta();
+        if(!bookMeta.hasEnchant(Enchantment.ARROW_INFINITE)) return;
+        bookMeta.getLore();
+        Wand wandToUse = getWandByEffect(bookMeta.getLore().get(0).substring(WandCreator.loreText.length() - 2));
+        List<String> collectedText = new ArrayList<>();
+        for(String page : bookMeta.getPages())
+            collectedText.addAll(Arrays.asList(page.split("\\r?\\n")));
+        // getLogger().info("Player list for wand " + wandToUse.getEffectName() + ": " + collectedText.toString());
+        wandToUse.setPlayers(collectedText);
     }
 }

@@ -1,6 +1,7 @@
 main: com.aguaral.effect_wands.App
 name: effect_wands
 version: 0.1
+api-version: '1.20.6'
 
 commands:
   effectwands:

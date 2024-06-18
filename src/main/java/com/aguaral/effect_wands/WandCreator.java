@@ -15,17 +15,20 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import net.md_5.bungee.api.ChatColor;
 
+// handles the logic for /createtomes
 public class WandCreator implements CommandExecutor {
-    public static String loreText = ChatColor.RESET + "" + ChatColor.RED + ChatColor.BOLD;
+    // text formatting appended in item lore before the effect
+    public static String loreText = ChatColor.RESET + "" + ChatColor.LIGHT_PURPLE + ChatColor.ITALIC;
 
     @Override
-    // gives the player all wands
+    // command "/createtomes": gives the player all tomes
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args)
     {
         if(sender instanceof Player)
         {
             Player player = (Player) sender;
             giveWandsToPlayer(player);
+            return true;
         }
         return false;
     }
@@ -36,16 +39,16 @@ public class WandCreator implements CommandExecutor {
 
         for(String effect : App.nameToEffect.keySet())
         {
-            ItemStack wand = new ItemStack(Material.NETHER_STAR);
+            ItemStack wand = new ItemStack(Material.WRITABLE_BOOK);
             wand.addUnsafeEnchantment(Enchantment.ARROW_INFINITE, 1);
             wand.setAmount(1);
             ItemMeta wandMeta = wand.getItemMeta();
 
             // set up metadata of wand
-            wandMeta.setDisplayName(ChatColor.RESET + "" + ChatColor.BLUE + "Artifact of " + ChatColor.RED + ChatColor.BOLD + effect);
+            wandMeta.setDisplayName(ChatColor.RESET + "" + ChatColor.BLUE + "Tome of " + ChatColor.LIGHT_PURPLE + ChatColor.BOLD + effect);
             wandMeta.setUnbreakable(true);
             
-            List<String> lore = new ArrayList<String>();
+            List<String> lore = new ArrayList<>();
             lore.add(loreText + effect);
             wandMeta.setLore(lore);
 
