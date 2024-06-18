@@ -1,0 +1,12 @@
+main: com.aguaral.effect_wands.App
+name: effect_wands
+version: 0.1
+
+commands:
+  effectwands:
+    description: Edit the player list of the held effect wand
+    usage: /effectwands <add/remove/clear> <playername>
+  createwands:
+    description: (Admin) Get the wands for this world 
+    usage: /createwands
+    permission: minecraft.command.ban
